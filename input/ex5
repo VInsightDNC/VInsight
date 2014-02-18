@@ -1,0 +1,119 @@
+
+# Copyright(c) 2013-2014. 
+# Dependable Networking and Computing (DNC) Lab in Wayne State University. 
+# All rights reserved.
+#---------------------------------------------------------------------------------
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+# 
+# 1. Redistributions of source code must retain the above copyright notice, this
+# list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, 
+# this list of conditions and the following disclaimer in the documentation and/or
+# other materials provided with the distribution.
+#
+# 3. Neither the name of the DNC lab nor the names of its contributors may be used 
+# to endorse or promote products derived from this software without specific prior 
+# written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+# SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, 
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+#--------------------------------------------------------------------------------
+# Dependable Networking and Computing Lab
+# Wayne State University
+# Email: vinsight.dnc@gmail.com
+#--------------------------------------------------------------------------------
+# Name: Experiment_description
+# Function: example of the experiment description, which shows how to run an application on a set of resources. Users can modify it according to theirs specific requirements.
+# Author: Yuehua Wang 
+# Email: yuehua.research@gmail.com
+#/
+
+# In this example we
+# 1) define a new application, which will include both the openxc-sensing and wimax network measurement
+# 2) define a group of nodes that will run the application and return the output
+# 3) run the application based on the experiment description and return the results/outputs to the OMF server
+# Note: the results/outputs will temporarily stored on the local nodes and then sent to the OMF server when the wimax network turns to be available while all the experiments or applications stop.
+#
+
+#
+# 1) Define a new application with a set of configuration.
+# app.defProperty defines the property of the application, where
+# the first field is the name of the property;
+# the second field is the initial value of the property;
+# the third field is the textual description of the property.
+#
+
+defApplication('openxcWrapper', 'openxc_sensing_App') {|app|
+    app.shortDescription = "This is a simple application sensing the internal vehicle status" 
+    app.derProperty('exid',5,'experiment id')
+# mode 0 refers to the server that listers to the sender and cooperates with the sender to complete the application 
+# mode 1 refers to the openxc sensing
+# mode 2 refers to the wimax network sensing
+# mode 3 refers to the hybrid mode of the modes 1 and 2
+#
+    app.defProperty('mode',1,'openxc sensing')
+# set the start time of the application. If it is 1, the EE will create one job and insert it to the joblist at the earliest available timeslot.
+    app.defProperty('start time',1, 'the earliest available time')
+# set the end time of the application. Here it is set to 600 sec. That means, the application should be stopped after the application runs 600 sec.
+    app.defProperty('end time',600,'the time that the application should be terminated')
+}
+
+#
+# 2) Define a group called 'sender' that contains a number of nodes. In this example, there is only one sender. [x,y] describes a single or multiple resources at location x@y. In VInsight, the OMF server splits the entire 2-D space into m*n units. The mobile platforms that reside in the unit [x,y] are marked as [x,y].
+#
+
+#sender
+defGroup('sender',[1,1]) { |node|
+  node.type = "sender"
+  node.mode = "1"
+  node.oml = "true"
+# add the node to the application
+  node.addApplication('openxcWrapper')
+}
+
+#receiver
+# define a group called 'receiver' that contains several nodes. In this example, the base station server is the receiver 
+defGroup('receiver',[0,0]) { |node|
+  node.type = "receiver"
+  node.mode = "0"
+  node.IP ="10.3.11.28"
+  node.port ="5001"
+# add the node to the application
+  node.addApplication('openxcWarpper')
+}
+
+
+#
+
+#
+#3) When all the nodes are ready, execute the application
+#
+
+whenAllUp(){ |node|
+# Wait for 10 sec to make sure the hardware are ready
+  wait 10
+
+# start the application
+  allGroups.startApplications
+
+# wait 600 sec that will be the appliation duration time
+  wait 600
+
+# stop the experiment
+  Experiment.done
+}
+
+
+
+
+
